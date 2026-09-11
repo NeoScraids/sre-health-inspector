@@ -1,94 +1,97 @@
 <div align="center">
 
   <h1>sre-health-inspector</h1>
-  <p><strong>Lightweight SRE Diagnostic CLI & Container for SSL/TLS Monitoring and Endpoint Telemetry</strong></p>
+  <p><strong>Sonda de Diagnóstico SRE en Python y Contenedor Docker para Monitoreo de SSL/TLS y Telemetría de Endpoints</strong></p>
 
   <p>
-    <img src="https://img.shields.io/badge/Language-Python_3.9+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
-    <img src="https://img.shields.io/badge/Container-Docker_Alpine-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
-    <img src="https://img.shields.io/badge/Dependencies-Zero_External_Libs-success?style=flat-square" alt="Zero Dependencies" />
-    <img src="https://img.shields.io/badge/Output-ASCII_%2F_JSON-blue?style=flat-square" alt="Output" />
-    <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License" />
+    <img src="https://img.shields.io/badge/Lenguaje-Python_3.9+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" />
+    <img src="https://img.shields.io/badge/Contenedor-Docker_Alpine-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
+    <img src="https://img.shields.io/badge/Dependencias-Cero_Librer%C3%ADas_Externas-success?style=flat-square" alt="Zero Dependencies" />
+    <img src="https://img.shields.io/badge/Salida-ASCII_%2F_JSON-blue?style=flat-square" alt="Salida" />
+    <img src="https://img.shields.io/badge/Licencia-MIT-blue?style=flat-square" alt="Licencia" />
   </p>
 
 </div>
 
 ---
 
-### Overview
+### Descripción General
 
-`sre-health-inspector` is a standalone Site Reliability Engineering (SRE) diagnostic probe. Designed for DevOps engineers, automated health-check jobs, and Kubernetes readiness sidecars, it verifies TLS certificate expiration timelines, measures endpoint response latencies in milliseconds, and validates TCP socket handshakes.
+`sre-health-inspector` es una sonda de diagnóstico diseñada para ingenieros de confiabilidad de sitios (SRE), operadores de infraestructura y tareas programadas en clústeres Kubernetes. 
 
-Key highlights:
-- **Zero External Dependencies:** Implemented exclusively with Python standard library modules (`ssl`, `socket`, `urllib.request`).
-- **Dual Output Modes:** Produces human-readable terminal tables or structured JSON for automated pipeline integration.
-- **Containerized Execution:** Available as an unprivileged, non-root Alpine container image.
-- **Deterministic Exit Codes:** Returns code `1` whenever any probed resource is in an expired, degraded, or unreachable state.
+Permite inspeccionar en segundos los días restantes de vigencia de certificados SSL/TLS, medir la latencia de respuesta en milisegundos de endpoints HTTP/HTTPS y validar la conectividad de sockets TCP.
+
+### Características Principales
+
+- **Cero Dependencias Externas:** Desarrollado utilizando exclusivamente módulos de la biblioteca estándar de Python (`ssl`, `socket`, `urllib.request`).
+- **Salida Dual:** Ofrece visualización en tablas de terminal legibles para humanos o JSON estructurado para integración en pipelines y cronjobs.
+- **Ejecución Contenerizada:** Imagen ligera basada en Alpine Linux ejecutada bajo un usuario sin privilegios (`appuser`).
+- **Códigos de Salida Deterministas:** Devuelve código `1` si cualquiera de los recursos auditados está vencido, degradado o inaccesible.
 
 ---
 
-### Quickstart
+### Inicio Rápido
 
-#### 1. Direct Python Execution
+#### 1. Ejecución Directa con Python
 
 ```bash
-# Clone the repository
+# Clonar el repositorio
 git clone https://github.com/NeoScraids/sre-health-inspector.git
 cd sre-health-inspector
 
-# Inspect SSL certificate expiration
+# Inspeccionar expiración de certificados SSL/TLS
 python -m src.inspector --ssl api.github.com google.com
 
-# Probe HTTP endpoint latencies and status codes
+# Medir latencia y códigos de respuesta de endpoints HTTP
 python -m src.inspector --http https://httpbin.org/status/200 https://api.github.com
 
-# Test TCP socket connectivity (host:port)
+# Probar conectividad en puertos TCP (host:puerto)
 python -m src.inspector --tcp 8.8.8.8:53 1.1.1.1:53
 ```
 
-#### 2. Containerized Execution via Docker
+#### 2. Ejecución Contenerizada con Docker
 
-No local Python installation required:
+No requiere tener Python instalado localmente:
 
 ```bash
-# Build the image
+# Construir la imagen del contenedor
 docker build -t sre-health-inspector .
 
-# Execute probe in ephemeral container
+# Ejecutar el diagnóstico puntual en un contenedor efímero
 docker run --rm sre-health-inspector --ssl github.com --http https://github.com
 ```
 
 ---
 
-### CLI Command Options
+### Opciones de la Línea de Comandos (CLI)
 
 ```text
-Usage: python -m src.inspector [OPTIONS]
+Uso: python -m src.inspector [OPCIONES]
 
-Options:
-  --ssl HOST [HOST ...]    One or more hostnames to query for TLS certificate expiry
-  --http URL [URL ...]     HTTP or HTTPS endpoints to measure response latency
-  --tcp HOST:PORT [...]    TCP host and port combinations to verify socket connectivity
-  --timeout SECONDS        Probe network timeout (Default: 5.0)
-  --json                   Format and stream output as structured JSON
-  --help                   Display this reference manual
+Opciones:
+  --ssl HOST [HOST ...]    Uno o más dominios para consultar la fecha de expiración TLS
+  --http URL [URL ...]     Endpoints HTTP o HTTPS para medir la latencia de respuesta
+  --tcp HOST:PUERTO [...]  Objetivos TCP formateados como host:puerto para verificar conectividad
+  --timeout SEGUNDOS       Tiempo límite de espera de red (Por defecto: 5.0)
+  --json                   Exportar los resultados en formato JSON estructurado
+  --help                   Muestra este mensaje de ayuda
 ```
 
 ---
 
-### Sample Terminal Output
+### Ejemplo de Salida en Terminal
 
 ```text
-=== SRE HEALTH INSPECTOR // REPORT ===
-CHECK            | TARGET                              | STATUS     | METRICS / DETAIL
+=== SRE HEALTH INSPECTOR // REPORTE ===
+CHECK            | DESTINO                             | ESTADO     | MÉTRICAS / DETALLE
 ---------------------------------------------------------------------------------------------------------
-ssl_certificate  | github.com:443                      | HEALTHY    | Expires in 142 days (Issuer: DigiCert Inc)
+ssl_certificate  | github.com:443                      | HEALTHY    | Expira en 142 días (Emisor: DigiCert Inc)
 http_endpoint    | https://api.github.com              | HEALTHY    | HTTP 200 (145.22 ms)
-tcp_port         | 8.8.8.8:53                          | HEALTHY    | Connection established (24.18 ms)
+tcp_port         | 8.8.8.8:53                          | HEALTHY    | Conexión establecida (24.18 ms)
 ======================================
 ```
 
-#### Structured JSON Output (`--json`)
+#### Salida Estructurada en JSON (`--json`)
 
 ```json
 {
@@ -109,9 +112,9 @@ tcp_port         | 8.8.8.8:53                          | HEALTHY    | Connection
 
 ---
 
-### Automated Testing
+### Pruebas Automatizadas
 
-Run the test suite using Python's built-in test runner:
+Ejecuta la suite de pruebas unitarias con el framework estándar:
 
 ```bash
 python -m unittest discover -s tests
@@ -119,6 +122,6 @@ python -m unittest discover -s tests
 
 ---
 
-### License
+### Licencia
 
-Distributed under the MIT License. Developed and maintained by [Brandon Mendieta](https://github.com/NeoScraids).
+Distribuido bajo la Licencia MIT. Desarrollado y mantenido por [Brandon Mendieta](https://github.com/NeoScraids).
