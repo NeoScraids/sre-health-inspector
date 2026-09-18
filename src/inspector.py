@@ -16,9 +16,17 @@ import urllib.parse
 import urllib.request
 
 
-def check_ssl_certificate(hostname: str, port: int = 443, timeout: float = 5.0) -> Dict[str, Any]:
+def check_ssl_certificate(
+    hostname: str, port: int = 443, timeout: float = 5.0, warn_days: int = 30
+) -> Dict[str, Any]:
     """
     Connects to a host via TLS and extracts certificate expiration and issuer details.
+
+    Args:
+        hostname: Target hostname.
+        port: TLS port (default 443).
+        timeout: Connection timeout in seconds.
+        warn_days: Days remaining threshold below which status becomes WARNING.
     """
     result: Dict[str, Any] = {
         "target": f"{hostname}:{port}",
@@ -59,7 +67,7 @@ def check_ssl_certificate(hostname: str, port: int = 443, timeout: float = 5.0) 
                     result["status"] = "EXPIRED"
                 elif days_left <= 14:
                     result["status"] = "CRITICAL"
-                elif days_left <= 30:
+                elif days_left <= warn_days:
                     result["status"] = "WARNING"
                 else:
                     result["status"] = "HEALTHY"
@@ -142,6 +150,19 @@ def check_tcp_port(host: str, port: int, timeout: float = 3.0) -> Dict[str, Any]
     return result
 
 
+def format_summary(results: List[Dict[str, Any]]) -> str:
+    """
+    Renders a one-line summary of status counts across all probes.
+    """
+    counts: Dict[str, int] = {}
+    for r in results:
+        s = r.get("status", "UNKNOWN")
+        counts[s] = counts.get(s, 0) + 1
+
+    parts = [f"{status}: {count}" for status, count in sorted(counts.items())]
+    return "Summary → " + "  |  ".join(parts)
+
+
 def format_table(results: List[Dict[str, Any]]) -> str:
     """
     Renders structured results as a clean ASCII tabular dashboard.
@@ -187,6 +208,8 @@ def main() -> int:
     parser.add_argument("--http", nargs="+", help="HTTP/HTTPS URLs to probe for latency and status codes")
     parser.add_argument("--tcp", nargs="+", help="TCP targets formatted as host:port (e.g. 10.0.1.10:5432)")
     parser.add_argument("--timeout", type=float, default=5.0, help="Probe timeout in seconds (Default: 5.0)")
+    parser.add_argument("--warn-days", type=int, default=30, dest="warn_days",
+                        help="SSL WARNING threshold in days before expiration (Default: 30)")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 
     args = parser.parse_args()
@@ -204,7 +227,7 @@ def main() -> int:
                 parts = host.split(":")
                 host = parts[0]
                 port = int(parts[1])
-            results.append(check_ssl_certificate(host, port, timeout=args.timeout))
+            results.append(check_ssl_certificate(host, port, timeout=args.timeout, warn_days=args.warn_days))
 
     if args.http:
         for url in args.http:
@@ -223,6 +246,8 @@ def main() -> int:
     else:
         print("\n=== SRE HEALTH INSPECTOR // REPORT ===")
         print(format_table(results))
+        print("--------------------------------------")
+        print(format_summary(results))
         print("======================================\n")
 
     # Determine exit status
